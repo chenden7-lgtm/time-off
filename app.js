@@ -354,11 +354,15 @@ const actionLineSettings = document.getElementById('actionLineSettings');
 const textSyncStatus = document.getElementById('textSyncStatus');
 const syncKeyContainer = document.getElementById('syncKeyContainer');
 const syncKeyField = document.getElementById('syncKeyField');
+const syncUrlField = document.getElementById('syncUrlField');
 const inputSyncKey = document.getElementById('inputSyncKey');
 const btnEnableSync = document.getElementById('btnEnableSync');
 const btnGenerateSyncKey = document.getElementById('btnGenerateSyncKey');
 const btnDisableSync = document.getElementById('btnDisableSync');
 const btnCopySyncKey = document.getElementById('btnCopySyncKey');
+const btnCopySyncUrl = document.getElementById('btnCopySyncUrl');
+const btnMobileBackupRestore = document.getElementById('btnMobileBackupRestore');
+const btnMobileLineSettings = document.getElementById('btnMobileLineSettings');
 const syncInputGroup = document.getElementById('syncInputGroup');
 
 // Shop Events Elements
@@ -481,8 +485,19 @@ function checkSession() {
     const sessionUser = sessionStorage.getItem('scheduler_current_user');
     if (sessionUser) {
         try {
-            currentUser = JSON.parse(sessionUser);
-            showMainApp();
+            const parsedUser = JSON.parse(sessionUser);
+            // Verify if user still exists in the database
+            const userInDb = dbData.users.find(u => u.username.toLowerCase() === parsedUser.username.toLowerCase());
+            if (userInDb) {
+                // Update active user data in case password or metadata changed
+                currentUser = userInDb;
+                sessionStorage.setItem('scheduler_current_user', JSON.stringify(currentUser));
+                showMainApp();
+            } else {
+                sessionStorage.removeItem('scheduler_current_user');
+                currentUser = null;
+                showLogin();
+            }
         } catch (e) {
             showLogin();
         }
@@ -2059,6 +2074,10 @@ function updateSyncUI() {
         
         syncKeyContainer.style.display = 'block';
         syncKeyField.value = dbData.syncSettings.syncKey;
+        if (syncUrlField) {
+            const shareUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?sync_key=" + dbData.syncSettings.syncKey;
+            syncUrlField.value = shareUrl;
+        }
         
         btnGenerateSyncKey.style.display = 'none';
         syncInputGroup.style.display = 'none';
@@ -2069,6 +2088,9 @@ function updateSyncUI() {
         
         syncKeyContainer.style.display = 'none';
         syncKeyField.value = '';
+        if (syncUrlField) {
+            syncUrlField.value = '';
+        }
         
         btnGenerateSyncKey.style.display = 'block';
         syncInputGroup.style.display = 'flex';
@@ -2158,8 +2180,37 @@ if (btnCopySyncKey) {
     btnCopySyncKey.addEventListener('click', () => {
         syncKeyField.select();
         syncKeyField.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(syncKeyField.value);
-        alert('同步密鑰已複製到剪貼簿！');
+        navigator.clipboard.writeText(syncKeyField.value).then(() => {
+            alert('同步密鑰已複製到剪貼簿！');
+        }).catch(err => {
+            console.error('無法複製金鑰:', err);
+        });
+    });
+}
+
+if (btnCopySyncUrl) {
+    btnCopySyncUrl.addEventListener('click', () => {
+        syncUrlField.select();
+        syncUrlField.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(syncUrlField.value).then(() => {
+            alert('一鍵同步網址已複製到剪貼簿！可以傳送給員工或在手機上點開直接同步。');
+        }).catch(err => {
+            console.error('無法複製網址:', err);
+        });
+    });
+}
+
+if (btnMobileBackupRestore) {
+    btnMobileBackupRestore.addEventListener('click', () => {
+        closeModal(changePasswordModal);
+        btnBackupRestore.click();
+    });
+}
+
+if (btnMobileLineSettings) {
+    btnMobileLineSettings.addEventListener('click', () => {
+        closeModal(changePasswordModal);
+        btnLineSettings.click();
     });
 }
 
@@ -3308,7 +3359,65 @@ window.deleteMember = deleteMember;
 window.approveLeave = approveLeave;
 window.openEditEventModal = openEditEventModal;
 
+async function handleUrlSyncKey() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlSyncKey = urlParams.get('sync_key');
+    if (urlSyncKey && urlSyncKey.startsWith('s_')) {
+        if (dbData.syncSettings && dbData.syncSettings.enabled && dbData.syncSettings.syncKey === urlSyncKey) {
+            // Clean URL parameter
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+            return;
+        }
+        
+        try {
+            console.log(`URL parameter sync_key detected: ${urlSyncKey}. Attempting to fetch cloud data...`);
+            
+            // Set a timeout of 5 seconds for the fetch
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(`https://kvdb.io/keys/${urlSyncKey}`, {
+                method: 'GET',
+                mode: 'cors',
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+                const remoteData = await response.json();
+                if (remoteData && remoteData.users && remoteData.shifts && remoteData.leaves && remoteData.tasks) {
+                    dbData = remoteData;
+                    dbData.syncSettings = {
+                        enabled: true,
+                        syncKey: urlSyncKey
+                    };
+                    saveData(false); // save locally
+                    console.log("Database initialized from URL sync_key successfully.");
+                    
+                    // Clean URL parameter so it doesn't prompt or reload again
+                    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                    window.history.replaceState({ path: newUrl }, '', newUrl);
+                    
+                    alert('已成功透過一鍵同步連結，連結並同步雲端排班資料庫！');
+                } else {
+                    console.warn("Fetched cloud database is invalid or empty.");
+                }
+            } else {
+                console.warn("URL sync_key invalid or no remote database found.");
+            }
+        } catch (error) {
+            console.error("Failed to sync from URL sync_key:", error);
+            alert('自動同步失敗，請確認網路連線或金鑰是否正確。');
+        }
+    }
+}
+
 // Load App on Script load
-loadData();
-fetchAndSyncDatabase();
-checkSession();
+async function initApp() {
+    loadData();
+    await handleUrlSyncKey();
+    await fetchAndSyncDatabase();
+    checkSession();
+}
+initApp();

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>排班排休與打掃時數管理系統</title>
-    <link rel="stylesheet" href="style.css?v=2.0">
+    <link rel="stylesheet" href="style.css?v=2.1">
 </head>
 <body>
 
@@ -779,9 +779,14 @@
                     </div>
                     <div id="syncKeyContainer" style="display: none; margin-bottom: 0.75rem;">
                         <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">您的雲端同步密鑰 (請在其他手機/電腦上填入此鑰匙啟用同步):</label>
-                        <div style="display: flex; gap: 6px;">
+                        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                             <input type="text" id="syncKeyField" class="form-control" style="font-family: monospace; font-size: 0.8rem; padding: 4px 8px; height: auto;" readonly>
-                            <button id="btnCopySyncKey" type="button" class="btn btn-secondary btn-xs" style="white-space: nowrap; padding: 4px 8px;">複製</button>
+                            <button id="btnCopySyncKey" type="button" class="btn btn-secondary btn-xs" style="white-space: nowrap; padding: 4px 8px;">複製密鑰</button>
+                        </div>
+                        <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">一鍵同步分享網址 (發送此連結給員工或開在手機瀏覽器即可直接同步):</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" id="syncUrlField" class="form-control" style="font-size: 0.8rem; padding: 4px 8px; height: auto;" readonly>
+                            <button id="btnCopySyncUrl" type="button" class="btn btn-secondary btn-xs" style="white-space: nowrap; padding: 4px 8px;">複製網址</button>
                         </div>
                     </div>
                     <div id="syncSetupContainer" style="margin-bottom: 0;">
@@ -832,6 +837,21 @@
                         <input type="password" id="confirmNewPassword" class="form-control" style="padding-left: 1rem;" placeholder="請再次輸入新密碼" required autocomplete="new-password">
                     </div>
                 </form>
+                
+                <!-- Admin Settings Quick Access (Visible only to Admin on mobile/desktop) -->
+                <div class="admin-only" style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px dashed var(--border-color);">
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; display: block; color: var(--text-primary);">⚙️ 管理員系統設定</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button id="btnMobileBackupRestore" type="button" class="btn btn-secondary btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <svg viewBox="0 0 24 24" style="fill: #4f46e5; width: 1rem; height: 1rem;"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+                            資料備份與還原 (雲端同步)
+                        </button>
+                        <button id="btnMobileLineSettings" type="button" class="btn btn-secondary btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <svg viewBox="0 0 24 24" style="fill: #06C755; width: 1rem; height: 1rem;"><path d="M12 2C6.48 2 2 5.58 2 10c0 2.45 1.5 4.6 3.86 5.86-.18.66-.65 2.37-.75 2.76-.1.39-.48 1.83.82 1.1 1.3-.73 6.02-4.08 6.07-4.12.33.05.66.08 1 .08 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/></svg>
+                            LINE 通知設定
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-close="changePasswordModal">取消</button>
@@ -861,6 +881,6 @@
     </div>
 
     <!-- Script loading -->
-    <script src="app.js?v=2.0"></script>
+    <script src="app.js?v=2.1"></script>
 </body>
 </html>
