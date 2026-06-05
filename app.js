@@ -538,8 +538,25 @@ function showMainApp() {
         }
     });
     
-    // Default show Dashboard Page
-    switchPage('dashboardPage');
+    // Default show page based on role and screen size
+    const isMobile = window.innerWidth <= 768;
+    const mobileNavBar = document.querySelector('.mobile-nav-bar');
+    
+    if (currentUser.role === 'admin') {
+        switchPage('dashboardPage');
+        if (mobileNavBar) {
+            mobileNavBar.style.setProperty('display', 'flex', 'important');
+        }
+    } else {
+        if (isMobile) {
+            switchPage('calendarPage');
+            if (mobileNavBar) {
+                mobileNavBar.style.setProperty('display', 'none', 'important');
+            }
+        } else {
+            switchPage('dashboardPage');
+        }
+    }
     initAppComponents();
 }
 
