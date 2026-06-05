@@ -766,6 +766,37 @@
                         <input type="file" id="importFile" accept=".json" class="form-control" style="padding: 0.5rem; line-height: 1.2; font-size: 0.85rem;">
                     </div>
                 </div>
+
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 1rem; margin-top: 1.5rem;">
+                    <h4 style="margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; color: var(--color-success); font-size: 0.95rem;">
+                        ⚡ 步驟 3: 雲端自動雙向同步 (手機電腦同步)
+                    </h4>
+                    <p style="font-size: 0.8rem; margin-bottom: 0.75rem; line-height: 1.4; color: var(--text-secondary);">
+                        啟用雲端同步，讓多台手機和電腦自動保持相同排班，免手動傳檔。
+                    </p>
+                    <div id="syncStatusSection" style="margin-bottom: 0.75rem; font-size: 0.85rem; font-weight: 600;">
+                        狀態: <span id="textSyncStatus" style="color: var(--text-muted);">尚未啟用</span>
+                    </div>
+                    <div id="syncKeyContainer" style="display: none; margin-bottom: 0.75rem;">
+                        <label style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">您的雲端同步密鑰 (請在其他手機/電腦上填入此鑰匙啟用同步):</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" id="syncKeyField" class="form-control" style="font-family: monospace; font-size: 0.8rem; padding: 4px 8px; height: auto;" readonly>
+                            <button id="btnCopySyncKey" type="button" class="btn btn-secondary btn-xs" style="white-space: nowrap; padding: 4px 8px;">複製</button>
+                        </div>
+                    </div>
+                    <div id="syncSetupContainer" style="margin-bottom: 0;">
+                        <div id="syncInputGroup" style="display: flex; gap: 6px;">
+                            <input type="text" id="inputSyncKey" class="form-control" style="font-size: 0.8rem; padding: 4px 8px; height: auto;" placeholder="貼上別處複製的同步密鑰">
+                            <button id="btnEnableSync" type="button" class="btn btn-success btn-xs" style="white-space: nowrap; padding: 4px 8px;">啟用同步</button>
+                        </div>
+                        <button id="btnGenerateSyncKey" type="button" class="btn btn-primary btn-sm" style="width: 100%; margin-top: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            🆕 第一次使用：生成全新雲端密鑰
+                        </button>
+                        <button id="btnDisableSync" type="button" class="btn btn-danger btn-sm" style="width: 100%; margin-top: 0.5rem; display: none;">
+                            📴 停用並中斷雲端同步
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-close="backupModal">關閉</button>

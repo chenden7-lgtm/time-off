@@ -90,6 +90,7 @@ function loadData() {
         dbData.lineSettings.enabled = true;
     }
     dbData.shopEvents = dbData.shopEvents || [];
+    dbData.syncSettings = dbData.syncSettings || { enabled: false, syncKey: '' };
 }
 
 function saveData(shouldSync = true) {
@@ -97,6 +98,7 @@ function saveData(shouldSync = true) {
     localStorage.setItem('shift_system_data', JSON.stringify(dbData));
     if (shouldSync) {
         syncDatabaseToWebhook();
+        syncDatabaseToCloud();
     }
 }
 
@@ -347,6 +349,17 @@ const mobileProfileSection = document.getElementById('mobileProfileSection');
 const actionPendingLeaves = document.getElementById('actionPendingLeaves');
 const actionBackupRestore = document.getElementById('actionBackupRestore');
 const actionLineSettings = document.getElementById('actionLineSettings');
+
+// Cloud Sync Elements
+const textSyncStatus = document.getElementById('textSyncStatus');
+const syncKeyContainer = document.getElementById('syncKeyContainer');
+const syncKeyField = document.getElementById('syncKeyField');
+const inputSyncKey = document.getElementById('inputSyncKey');
+const btnEnableSync = document.getElementById('btnEnableSync');
+const btnGenerateSyncKey = document.getElementById('btnGenerateSyncKey');
+const btnDisableSync = document.getElementById('btnDisableSync');
+const btnCopySyncKey = document.getElementById('btnCopySyncKey');
+const syncInputGroup = document.getElementById('syncInputGroup');
 
 // Shop Events Elements
 const actionManageEvents = document.getElementById('actionManageEvents');
@@ -1662,60 +1675,111 @@ async function syncDatabaseToWebhook() {
 }
 
 async function fetchAndSyncDatabase() {
-    if (dbData.lineSettings && dbData.lineSettings.enabled && dbData.lineSettings.webhookUrl) {
-        if (!dbData.lineSettings.webhookUrl.includes('script.google.com')) {
-            return;
-        }
+    let synced = false;
+    
+    // 1. Cloud KV Store Sync (Priority)
+    if (dbData.syncSettings && dbData.syncSettings.enabled && dbData.syncSettings.syncKey) {
         try {
-            console.log("Fetching database update from GAS Webhook...");
-            const response = await fetch(dbData.lineSettings.webhookUrl, {
+            console.log("Fetching database update from Cloud KV Store...");
+            const response = await fetch(`https://kvdb.io/keys/${dbData.syncSettings.syncKey}`, {
                 method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Accept': 'application/json'
-                }
+                mode: 'cors'
             });
-            if (!response.ok) {
-                throw new Error(`Server returned HTTP status ${response.status}`);
-            }
-            const remoteData = await response.json();
-            if (remoteData && remoteData.users && remoteData.shifts && remoteData.leaves && remoteData.tasks) {
-                // Compare timestamps
-                const localUpdated = dbData.lastUpdated || 0;
-                const remoteUpdated = remoteData.lastUpdated || 0;
-                
-                if (remoteUpdated > localUpdated) {
-                    console.log("Remote database is newer. Overwriting local data...", { localUpdated, remoteUpdated });
-                    dbData = remoteData;
+            if (response.ok) {
+                const remoteData = await response.json();
+                if (remoteData && remoteData.users && remoteData.shifts && remoteData.leaves && remoteData.tasks) {
+                    const localUpdated = dbData.lastUpdated || 0;
+                    const remoteUpdated = remoteData.lastUpdated || 0;
                     
-                    // Safety Recovery: Ensure admin user password is not compromised
-                    let adminUser = dbData.users.find(u => u.username === 'admin');
-                    if (adminUser) {
-                        adminUser.password = 'admin123';
+                    if (remoteUpdated > localUpdated) {
+                        console.log("Remote Cloud database is newer. Overwriting local data...", { localUpdated, remoteUpdated });
+                        dbData = remoteData;
+                        
+                        // Safety Recovery: Ensure admin user password is not compromised
+                        let adminUser = dbData.users.find(u => u.username === 'admin');
+                        if (adminUser) {
+                            adminUser.password = 'admin123';
+                        } else {
+                            dbData.users.push({ username: 'admin', password: 'admin123', name: '主管/管理員', role: 'admin', position: 'other', compDays: 0, leaveLimit: 2 });
+                        }
+                        
+                        saveData(false); // Save locally, DO NOT POST sync back
+                        synced = true;
                     } else {
-                        dbData.users.push({ username: 'admin', password: 'admin123', name: '主管/管理員', role: 'admin', position: 'other', compDays: 0, leaveLimit: 2 });
+                        console.log("Local database is up-to-date or newer. Skip cloud sync.", { localUpdated, remoteUpdated });
                     }
-                    
-                    saveData(false); // Save locally, DO NOT POST sync back
-                    
-                    // Re-render current active page if logged in
-                    const activePage = document.querySelector('.page-content.active');
-                    if (activePage) {
-                        const pageId = activePage.id;
-                        if (pageId === 'dashboardPage') renderDashboard();
-                        else if (pageId === 'calendarPage') renderCalendar(currentYear, currentMonth);
-                        else if (pageId === 'cleaningPage') renderCleaningPage();
-                        else if (pageId === 'memberPage') renderMembers();
-                    }
-                    console.log("Local database successfully updated & active view refreshed.");
-                } else {
-                    console.log("Local database is up-to-date or newer. Skip sync.", { localUpdated, remoteUpdated });
                 }
-            } else {
-                console.warn("Invalid data format received from remote Webhook sync:", remoteData);
             }
         } catch (error) {
-            console.warn("Failed to fetch database from Webhook (expected on first setup or if doGet is not configured):", error);
+            console.warn("Failed to fetch database from Cloud KV Store:", error);
+        }
+    }
+    
+    // 2. GAS Webhook Sync (Secondary fallback)
+    if (!synced && dbData.lineSettings && dbData.lineSettings.enabled && dbData.lineSettings.webhookUrl) {
+        if (dbData.lineSettings.webhookUrl.includes('script.google.com')) {
+            try {
+                console.log("Fetching database update from GAS Webhook...");
+                const response = await fetch(dbData.lineSettings.webhookUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    const remoteData = await response.json();
+                    if (remoteData && remoteData.users && remoteData.shifts && remoteData.leaves && remoteData.tasks) {
+                        const localUpdated = dbData.lastUpdated || 0;
+                        const remoteUpdated = remoteData.lastUpdated || 0;
+                        
+                        if (remoteUpdated > localUpdated) {
+                            console.log("Remote GAS database is newer. Overwriting local data...", { localUpdated, remoteUpdated });
+                            dbData = remoteData;
+                            
+                            // Safety Recovery: Ensure admin user password is not compromised
+                            let adminUser = dbData.users.find(u => u.username === 'admin');
+                            if (adminUser) {
+                                adminUser.password = 'admin123';
+                            } else {
+                                dbData.users.push({ username: 'admin', password: 'admin123', name: '主管/管理員', role: 'admin', position: 'other', compDays: 0, leaveLimit: 2 });
+                            }
+                            
+                            saveData(false); // Save locally, DO NOT POST sync back
+                            synced = true;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn("Failed to fetch database from Webhook:", error);
+            }
+        }
+    }
+    
+    // If successfully synced data, refresh active page
+    if (synced) {
+        const activePage = document.querySelector('.page-content.active');
+        if (activePage) {
+            const pageId = activePage.id;
+            if (pageId === 'dashboardPage') renderDashboard();
+            else if (pageId === 'calendarPage') renderCalendar(currentYear, currentMonth);
+            else if (pageId === 'cleaningPage') renderCleaningPage();
+            else if (pageId === 'memberPage') renderMembers();
+        }
+        console.log("Active view successfully refreshed with synced data.");
+    }
+}
+
+async function syncDatabaseToCloud() {
+    if (dbData.syncSettings && dbData.syncSettings.enabled && dbData.syncSettings.syncKey) {
+        try {
+            await fetch(`https://kvdb.io/keys/${dbData.syncSettings.syncKey}`, {
+                method: 'POST',
+                body: JSON.stringify(dbData)
+            });
+            console.log("Database backup synced to Cloud successfully");
+        } catch (error) {
+            console.warn("Cloud sync failed:", error);
         }
     }
 }
@@ -1899,6 +1963,7 @@ btnPendingLeaves.addEventListener('click', () => {
 // Backup & Restore Modal triggers (Admin only)
 btnBackupRestore.addEventListener('click', () => {
     importFile.value = ''; // Reset file input
+    updateSyncUI();
     openModal(backupModal);
 });
 
@@ -1981,6 +2046,123 @@ btnConfirmImport.addEventListener('click', () => {
     };
     reader.readAsText(file);
 });
+
+// --- Cloud Sync Logic & Listeners ---
+function updateSyncUI() {
+    if (!textSyncStatus) return;
+    
+    dbData.syncSettings = dbData.syncSettings || { enabled: false, syncKey: '' };
+    
+    if (dbData.syncSettings.enabled && dbData.syncSettings.syncKey) {
+        textSyncStatus.textContent = '已啟用 (已連線雲端)';
+        textSyncStatus.style.color = 'var(--color-success)';
+        
+        syncKeyContainer.style.display = 'block';
+        syncKeyField.value = dbData.syncSettings.syncKey;
+        
+        btnGenerateSyncKey.style.display = 'none';
+        syncInputGroup.style.display = 'none';
+        btnDisableSync.style.display = 'block';
+    } else {
+        textSyncStatus.textContent = '尚未啟用 (資料僅保留在本地)';
+        textSyncStatus.style.color = 'var(--text-muted)';
+        
+        syncKeyContainer.style.display = 'none';
+        syncKeyField.value = '';
+        
+        btnGenerateSyncKey.style.display = 'block';
+        syncInputGroup.style.display = 'flex';
+        btnDisableSync.style.display = 'none';
+    }
+}
+
+if (btnGenerateSyncKey) {
+    btnGenerateSyncKey.addEventListener('click', () => {
+        if (confirm('確定要啟用雲端同步並生成全新的金鑰嗎？\n這將會在雲端建立一個專屬您系統的同步資料空間。')) {
+            const newKey = 's_' + Math.random().toString(36).substr(2, 9) + Math.random().toString(36).substr(2, 9);
+            dbData.syncSettings = {
+                enabled: true,
+                syncKey: newKey
+            };
+            saveData(); // Save and post to Cloud KV store immediately
+            updateSyncUI();
+            alert('全新雲端同步密鑰生成成功！\n請複製此密鑰，並在其他手機或電腦的備份對話框中貼上啟用。');
+        }
+    });
+}
+
+if (btnEnableSync) {
+    btnEnableSync.addEventListener('click', async () => {
+        const key = inputSyncKey.value.trim();
+        if (!key) {
+            alert('請先輸入或貼上同步密鑰！');
+            return;
+        }
+        if (!key.startsWith('s_')) {
+            alert('無效的同步密鑰格式！密鑰格式應為 s_ 開頭。');
+            return;
+        }
+        
+        if (!confirm('啟用此同步密鑰將會下載雲端的排班假單資料，並覆蓋您目前這台裝置上的所有本地資料！確定要繼續嗎？')) {
+            return;
+        }
+        
+        try {
+            btnEnableSync.disabled = true;
+            btnEnableSync.textContent = '連線中...';
+            console.log(`Attempting to fetch remote db using key: ${key}`);
+            const response = await fetch(`https://kvdb.io/keys/${key}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+            if (!response.ok) {
+                throw new Error('找不到該密鑰對應的雲端備份，請確認密鑰是否正確，且曾在其他裝置上點選「生成全新密鑰」。');
+            }
+            const remoteData = await response.json();
+            if (remoteData && remoteData.users && remoteData.shifts) {
+                dbData = remoteData;
+                dbData.syncSettings = {
+                    enabled: true,
+                    syncKey: key
+                };
+                saveData(false); // Save locally without pushing back
+                alert('雲端同步成功連線！本裝置資料已更新，網頁即將自動重新整理。');
+                location.reload();
+            } else {
+                throw new Error('雲端資料格式不正確。');
+            }
+        } catch (e) {
+            alert('啟用同步失敗：' + e.message);
+        } finally {
+            btnEnableSync.disabled = false;
+            btnEnableSync.textContent = '啟用同步';
+        }
+    });
+}
+
+if (btnDisableSync) {
+    btnDisableSync.addEventListener('click', () => {
+        if (confirm('確定要停用雲端同步嗎？停用後兩台裝置將不再同步，資料仍會保留在本地。')) {
+            dbData.syncSettings = {
+                enabled: false,
+                syncKey: ''
+            };
+            saveData(false);
+            updateSyncUI();
+            alert('雲端同步已關閉！');
+        }
+    });
+}
+
+if (btnCopySyncKey) {
+    btnCopySyncKey.addEventListener('click', () => {
+        syncKeyField.select();
+        syncKeyField.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(syncKeyField.value);
+        alert('同步密鑰已複製到剪貼簿！');
+    });
+}
+
 
 // LINE Settings Modal triggers (Admin only)
 btnLineSettings.addEventListener('click', () => {
@@ -2288,6 +2470,7 @@ if (actionPendingLeaves) {
 if (actionBackupRestore) {
     actionBackupRestore.addEventListener('click', () => {
         importFile.value = ''; // Reset file input
+        updateSyncUI();
         openModal(backupModal);
     });
 }
