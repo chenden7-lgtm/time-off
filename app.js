@@ -354,6 +354,8 @@ const backupModal = document.getElementById('backupModal');
 const btnExportData = document.getElementById('btnExportData');
 const importFile = document.getElementById('importFile');
 const btnConfirmImport = document.getElementById('btnConfirmImport');
+const btnMobileLogout = document.getElementById('btnMobileLogout');
+const mobileProfileSection = document.getElementById('mobileProfileSection');
 
 // Shop Events Elements
 const actionManageEvents = document.getElementById('actionManageEvents');
@@ -498,6 +500,20 @@ function showMainApp() {
     currentUserAvatar.textContent = currentUser.name.charAt(0);
     currentUserName.textContent = currentUser.name;
     currentUserRole.textContent = currentUser.role === 'admin' ? '管理員 (Admin)' : '一般員工 (Employee)';
+    
+    // Set Mobile User Info
+    const mobileUserAvatar = document.getElementById('mobileUserAvatar');
+    const mobileUserName = document.getElementById('mobileUserName');
+    if (mobileUserAvatar) mobileUserAvatar.textContent = currentUser.name.charAt(0);
+    if (mobileUserName) {
+        if (currentUser.role === 'employee') {
+            const liveUser = dbData.users.find(u => u.username === currentUser.username);
+            const compDays = liveUser && liveUser.compDays !== undefined ? liveUser.compDays : 0;
+            mobileUserName.textContent = `${currentUser.name} (${compDays}天補休)`;
+        } else {
+            mobileUserName.textContent = currentUser.name;
+        }
+    }
     
     // Update personal compensatory leave days
     const liveUser = dbData.users.find(u => u.username === currentUser.username);
@@ -1723,10 +1739,25 @@ btnLogout.addEventListener('click', () => {
     showLogin();
 });
 
+if (btnMobileLogout) {
+    btnMobileLogout.addEventListener('click', () => {
+        sessionStorage.removeItem('scheduler_current_user');
+        currentUser = null;
+        showLogin();
+    });
+}
+
 // Change Password Modal Trigger
 const userProfileInfo = document.querySelector('.user-profile-info');
 if (userProfileInfo) {
     userProfileInfo.addEventListener('click', () => {
+        changePasswordForm.reset();
+        openModal(changePasswordModal);
+    });
+}
+
+if (mobileProfileSection) {
+    mobileProfileSection.addEventListener('click', () => {
         changePasswordForm.reset();
         openModal(changePasswordModal);
     });
