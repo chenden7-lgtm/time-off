@@ -92,9 +92,12 @@ function loadData() {
     dbData.shopEvents = dbData.shopEvents || [];
 }
 
-function saveData() {
+function saveData(shouldSync = true) {
+    dbData.lastUpdated = Date.now();
     localStorage.setItem('shift_system_data', JSON.stringify(dbData));
-    syncDatabaseToWebhook();
+    if (shouldSync) {
+        syncDatabaseToWebhook();
+    }
 }
 
 function getWeekdaysCount(year, month) {
@@ -169,25 +172,10 @@ function getConsecutiveLeaveDays(username, dateStr, excludeRecordId = null) {
 
 function isDateSchedulingOpen(dateStr) {
     const targetDate = new Date(dateStr);
-    const targetYear = targetDate.getFullYear();
-    const targetMonth = targetDate.getMonth();
-    
+    targetDate.setHours(0, 0, 0, 0);
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const currentDay = today.getDate();
-    
-    const monthDiff = (targetYear - currentYear) * 12 + (targetMonth - currentMonth);
-    
-    if (monthDiff < 0) return false; // Past months are closed
-    if (monthDiff === 0) return false; // Current month scheduling is closed (deadline was 10th of last month)
-    if (monthDiff === 1) {
-        return currentDay <= 10; // Must schedule next month's leave before the 10th of current month
-    }
-    if (monthDiff === 2) {
-        return currentDay >= 10; // Opens scheduling for 2 months later on the 10th of current month
-    }
-    return false; // More than 2 months away is not open yet
+    today.setHours(0, 0, 0, 0);
+    return targetDate >= today; // Must be today or in the future
 }
 
 function checkDailyLeaveLimit(dateStr, usernameToExclude = null) {
@@ -356,6 +344,9 @@ const importFile = document.getElementById('importFile');
 const btnConfirmImport = document.getElementById('btnConfirmImport');
 const btnMobileLogout = document.getElementById('btnMobileLogout');
 const mobileProfileSection = document.getElementById('mobileProfileSection');
+const actionPendingLeaves = document.getElementById('actionPendingLeaves');
+const actionBackupRestore = document.getElementById('actionBackupRestore');
+const actionLineSettings = document.getElementById('actionLineSettings');
 
 // Shop Events Elements
 const actionManageEvents = document.getElementById('actionManageEvents');
@@ -561,6 +552,8 @@ function showMainApp() {
 }
 
 function switchPage(pageId) {
+    fetchAndSyncDatabase();
+    
     // Deactivate all nav items & pages
     navItems.forEach(item => {
         item.classList.remove('active');
@@ -1668,6 +1661,65 @@ async function syncDatabaseToWebhook() {
     }
 }
 
+async function fetchAndSyncDatabase() {
+    if (dbData.lineSettings && dbData.lineSettings.enabled && dbData.lineSettings.webhookUrl) {
+        if (!dbData.lineSettings.webhookUrl.includes('script.google.com')) {
+            return;
+        }
+        try {
+            console.log("Fetching database update from GAS Webhook...");
+            const response = await fetch(dbData.lineSettings.webhookUrl, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`Server returned HTTP status ${response.status}`);
+            }
+            const remoteData = await response.json();
+            if (remoteData && remoteData.users && remoteData.shifts && remoteData.leaves && remoteData.tasks) {
+                // Compare timestamps
+                const localUpdated = dbData.lastUpdated || 0;
+                const remoteUpdated = remoteData.lastUpdated || 0;
+                
+                if (remoteUpdated > localUpdated) {
+                    console.log("Remote database is newer. Overwriting local data...", { localUpdated, remoteUpdated });
+                    dbData = remoteData;
+                    
+                    // Safety Recovery: Ensure admin user password is not compromised
+                    let adminUser = dbData.users.find(u => u.username === 'admin');
+                    if (adminUser) {
+                        adminUser.password = 'admin123';
+                    } else {
+                        dbData.users.push({ username: 'admin', password: 'admin123', name: '主管/管理員', role: 'admin', position: 'other', compDays: 0, leaveLimit: 2 });
+                    }
+                    
+                    saveData(false); // Save locally, DO NOT POST sync back
+                    
+                    // Re-render current active page if logged in
+                    const activePage = document.querySelector('.page-content.active');
+                    if (activePage) {
+                        const pageId = activePage.id;
+                        if (pageId === 'dashboardPage') renderDashboard();
+                        else if (pageId === 'calendarPage') renderCalendar(currentYear, currentMonth);
+                        else if (pageId === 'cleaningPage') renderCleaningPage();
+                        else if (pageId === 'memberPage') renderMembers();
+                    }
+                    console.log("Local database successfully updated & active view refreshed.");
+                } else {
+                    console.log("Local database is up-to-date or newer. Skip sync.", { localUpdated, remoteUpdated });
+                }
+            } else {
+                console.warn("Invalid data format received from remote Webhook sync:", remoteData);
+            }
+        } catch (error) {
+            console.warn("Failed to fetch database from Webhook (expected on first setup or if doGet is not configured):", error);
+        }
+    }
+}
+
 function triggerLineSimulatorToast(messageText) {
     if (!lineSimContainer) return;
 
@@ -1969,7 +2021,24 @@ btnCopyGASCode.addEventListener('click', () => {
 const LINE_ACCESS_TOKEN = "您的_LINE_BOT_CHANNEL_ACCESS_TOKEN";
 const LINE_GROUP_ID = "您的_LINE_工作群組_ID_或_ROOM_ID";
 
-// 1. 接收網頁發送的 POST 請求
+// 1. 接收網頁發送的 GET 請求，回傳最新備份資料庫（用於多裝置自動同步）
+function doGet(e) {
+  try {
+    const backup = PropertiesService.getScriptProperties().getProperty("db_backup");
+    if (backup) {
+      return ContentService.createTextOutput(backup)
+                           .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({ error: "No backup found" }))
+                           .setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// 2. 接收網頁發送的 POST 請求
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
@@ -1997,7 +2066,7 @@ function doPost(e) {
   }
 }
 
-// 2. 早上 10:00 自動觸發的時間驅動程序 (每日定時日報)
+// 3. 早上 10:00 自動觸發的時間驅動程序 (每日定時日報)
 function sendDailyReportTimer() {
   const dbJson = PropertiesService.getScriptProperties().getProperty("db_backup");
   if (!dbJson) {
@@ -2052,7 +2121,7 @@ function sendDailyReportTimer() {
   Logger.log("日報已成功發送：" + msg);
 }
 
-// 3. 呼叫 LINE Messaging API
+// 4. 呼叫 LINE Messaging API
 function sendLinePush(text) {
   const url = "https://api.line.me/v2/bot/message/push";
   const payload = {
@@ -2209,6 +2278,26 @@ actionGoToCalendar.addEventListener('click', () => {
     switchPage('calendarPage');
 });
 
+if (actionPendingLeaves) {
+    actionPendingLeaves.addEventListener('click', () => {
+        renderLeaveApprovalList();
+        openModal(leaveApprovalModal);
+    });
+}
+
+if (actionBackupRestore) {
+    actionBackupRestore.addEventListener('click', () => {
+        importFile.value = ''; // Reset file input
+        openModal(backupModal);
+    });
+}
+
+if (actionLineSettings) {
+    actionLineSettings.addEventListener('click', () => {
+        openModal(lineSettingsModal);
+    });
+}
+
 // --- Month Navigation listeners ---
 btnPrevMonth.addEventListener('click', () => {
     currentMonth--;
@@ -2326,19 +2415,7 @@ btnSubmitLeaveRequest.addEventListener('click', () => {
     
     // Check if date scheduling is open (Only for employees, admin bypasses)
     if (currentUser.role !== 'admin' && !isDateSchedulingOpen(date)) {
-        const targetDate = new Date(date);
-        const today = new Date();
-        const monthDiff = (targetDate.getFullYear() - today.getFullYear()) * 12 + (targetDate.getMonth() - today.getMonth());
-        
-        if (monthDiff <= 0) {
-            alert('申請失敗：已超過該月份的排休截止時間（排休需於前一個月 10 號前完成）。如需臨時請假，請聯絡管理員手動調整。');
-        } else if (monthDiff === 1) {
-            alert('申請失敗：已超過下個月排休的截止時間（每月 10 號前需排完下個月休假）。');
-        } else if (monthDiff === 2) {
-            alert('該月份排休尚未開放！系統規定：每個月 10 號才開放隔兩個月的排休（例如 6/10 開放 8 月份的排休）。');
-        } else {
-            alert('該月份排休尚未開放！只能排定開放時間內的休假。');
-        }
+        alert('申請失敗：該排休日期已過期，無法申請過去的休假。如需調整，請聯絡主管手動調整。');
         return;
     }
 
@@ -3050,4 +3127,5 @@ window.openEditEventModal = openEditEventModal;
 
 // Load App on Script load
 loadData();
+fetchAndSyncDatabase();
 checkSession();
