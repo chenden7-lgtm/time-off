@@ -377,6 +377,12 @@ const taskModal = document.getElementById('taskModal');
 const completeTaskModal = document.getElementById('completeTaskModal');
 const leaveApprovalModal = document.getElementById('leaveApprovalModal');
 const memberModal = document.getElementById('memberModal');
+const changePasswordModal = document.getElementById('changePasswordModal');
+const changePasswordForm = document.getElementById('changePasswordForm');
+const oldPasswordInput = document.getElementById('oldPassword');
+const newPasswordInput = document.getElementById('newPassword');
+const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
+const btnSaveNewPassword = document.getElementById('btnSaveNewPassword');
 
 // Modal Form Elements
 const shiftForm = document.getElementById('shiftForm');
@@ -1716,6 +1722,65 @@ btnLogout.addEventListener('click', () => {
     currentUser = null;
     showLogin();
 });
+
+// Change Password Modal Trigger
+const userProfileInfo = document.querySelector('.user-profile-info');
+if (userProfileInfo) {
+    userProfileInfo.addEventListener('click', () => {
+        changePasswordForm.reset();
+        openModal(changePasswordModal);
+    });
+}
+
+// Change Password Save
+function handleSaveNewPassword() {
+    const oldPassword = oldPasswordInput.value;
+    const newPassword = newPasswordInput.value;
+    const confirmNewPassword = confirmNewPasswordInput.value;
+
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+        alert('請填寫所有欄位！');
+        return;
+    }
+
+    if (oldPassword !== currentUser.password) {
+        alert('修改失敗：目前密碼輸入錯誤！');
+        return;
+    }
+
+    if (newPassword.length < 3) {
+        alert('修改失敗：新密碼長度至少需 3 位！');
+        return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+        alert('修改失敗：新密碼與確認密碼不符！');
+        return;
+    }
+
+    // Update in database users list
+    const matchedUser = dbData.users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+    if (matchedUser) {
+        matchedUser.password = newPassword;
+        currentUser.password = newPassword;
+        sessionStorage.setItem('scheduler_current_user', JSON.stringify(currentUser));
+        saveData();
+        closeModal(changePasswordModal);
+        alert('密碼修改成功！下次登入請使用新密碼。');
+    } else {
+        alert('修改失敗：找不到當前登入的使用者資料！');
+    }
+}
+
+if (btnSaveNewPassword) {
+    btnSaveNewPassword.addEventListener('click', handleSaveNewPassword);
+}
+if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleSaveNewPassword();
+    });
+}
 
 // Navigation Items clicks
 navItems.forEach(item => {

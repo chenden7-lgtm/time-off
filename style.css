@@ -449,6 +449,14 @@ nav {
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 10px;
+    transition: background-color var(--transition-fast);
+}
+
+.user-profile-info:hover {
+    background-color: var(--bg-nav-hover, rgba(15, 23, 42, 0.04));
 }
 
 .avatar {
