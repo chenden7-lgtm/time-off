@@ -1842,25 +1842,30 @@ btnConfirmImport.addEventListener('click', () => {
             if (!importedData || typeof importedData !== 'object') {
                 throw new Error('無效的備份檔案格式');
             }
-            if (!Array.isArray(importedData.members)) {
+            
+            // Determine users list (either users or members key)
+            const users = Array.isArray(importedData.users) ? importedData.users : 
+                          (Array.isArray(importedData.members) ? importedData.members : null);
+            if (!users) {
                 throw new Error('備份檔案中缺少「員工資料」或格式錯誤');
             }
-            if (!Array.isArray(importedData.leaves)) {
+            
+            const leaves = Array.isArray(importedData.leaves) ? importedData.leaves : null;
+            if (!leaves) {
                 throw new Error('備份檔案中缺少「假單資料」或格式錯誤');
             }
-            if (!Array.isArray(importedData.tasks)) {
-                throw new Error('備份檔案中缺少「打掃任務」或格式錯誤');
-            }
-            if (!Array.isArray(importedData.shopEvents)) {
-                throw new Error('備份檔案中缺少「店休聚餐事件」或格式錯誤');
-            }
+
+            const tasks = Array.isArray(importedData.tasks) ? importedData.tasks : [];
+            const shifts = Array.isArray(importedData.shifts) ? importedData.shifts : [];
+            const shopEvents = Array.isArray(importedData.shopEvents) ? importedData.shopEvents : [];
             
             // Safe copy to dbData
             dbData = {
-                members: importedData.members,
-                leaves: importedData.leaves,
-                tasks: importedData.tasks,
-                shopEvents: importedData.shopEvents,
+                users: users,
+                shifts: shifts,
+                leaves: leaves,
+                tasks: tasks,
+                shopEvents: shopEvents,
                 lineSettings: importedData.lineSettings || { enabled: false, webhookUrl: '' }
             };
             
