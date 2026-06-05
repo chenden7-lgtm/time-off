@@ -1696,7 +1696,7 @@ async function fetchAndSyncDatabase() {
     if (dbData.syncSettings && dbData.syncSettings.enabled && dbData.syncSettings.syncKey) {
         try {
             console.log("Fetching database update from Cloud KV Store...");
-            const response = await fetch(`https://kvdb.io/keys/${dbData.syncSettings.syncKey}`, {
+            const response = await fetch(`https://kvdb.io/4jVV8b8bbLkHjBX9jQNbAP/${dbData.syncSettings.syncKey}`, {
                 method: 'GET',
                 mode: 'cors'
             });
@@ -1788,7 +1788,7 @@ async function fetchAndSyncDatabase() {
 async function syncDatabaseToCloud() {
     if (dbData.syncSettings && dbData.syncSettings.enabled && dbData.syncSettings.syncKey) {
         try {
-            await fetch(`https://kvdb.io/keys/${dbData.syncSettings.syncKey}`, {
+            await fetch(`https://kvdb.io/4jVV8b8bbLkHjBX9jQNbAP/${dbData.syncSettings.syncKey}`, {
                 method: 'POST',
                 body: JSON.stringify(dbData)
             });
@@ -2133,7 +2133,7 @@ if (btnEnableSync) {
             btnEnableSync.disabled = true;
             btnEnableSync.textContent = '連線中...';
             console.log(`Attempting to fetch remote db using key: ${key}`);
-            const response = await fetch(`https://kvdb.io/keys/${key}`, {
+            const response = await fetch(`https://kvdb.io/4jVV8b8bbLkHjBX9jQNbAP/${key}`, {
                 method: 'GET',
                 mode: 'cors'
             });
@@ -3377,7 +3377,7 @@ async function handleUrlSyncKey() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch(`https://kvdb.io/keys/${urlSyncKey}`, {
+            const response = await fetch(`https://kvdb.io/4jVV8b8bbLkHjBX9jQNbAP/${urlSyncKey}`, {
                 method: 'GET',
                 mode: 'cors',
                 signal: controller.signal
