@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排班排休與打掃時數管理系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ==========================================
+         LOGIN SCREEN
+         ========================================== -->
+    <div id="loginView" class="login-container">
+        <div class="login-card glass-card">
+            <div class="login-logo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z"/>
+                </svg>
+            </div>
+            <div class="login-header">
+                <h1>排班與打掃管理系統</h1>
+                <p>請輸入您的帳號密碼以登入系統</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginUsername">帳號 (Username)</label>
+                    <div class="input-wrapper">
+                        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                        <input type="text" id="loginUsername" class="form-control" placeholder="請輸入帳號" required autocomplete="username">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">密碼 (Password)</label>
+                    <div class="input-wrapper">
+                        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="請輸入密碼" required autocomplete="current-password">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary login-btn">
+                    登入系統
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MAIN APP CONTAINER
+         ========================================== -->
+    <div id="appWrapper" class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside>
+            <div class="logo-section">
+                <div class="icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z"/>
+                    </svg>
+                </div>
+                <h2>排班與打掃系統<span>系統工作台</span></h2>
+            </div>
+            
+            <nav>
+                <div class="nav-item active" data-target="dashboardPage">
+                    <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    總覽儀表板
+                </div>
+                <div class="nav-item" data-target="calendarPage">
+                    <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm-5-7h-2v2h2v-2zm-4 0H8v2h2v-2zm8 0h-2v2h2v-2zm-4 4h-2v2h2v-2zm-4 0H8v2h2v-2zm8 0h-2v2h2v-2z"/></svg>
+                    排班行事曆
+                </div>
+                <div class="nav-item" data-target="cleaningPage">
+                    <svg viewBox="0 0 24 24"><path d="M16 11c0 2.2-1.8 4-4 4s-4-1.8-4-4 1.8-4 4-4 4 1.8 4 4zm-4-6c-3.9 0-7 3.1-7 7 0 2.5 1.3 4.7 3.2 5.9l-.6 2.3c-.2.7.3 1.4 1 1.4h6.8c.7 0 1.2-.7 1-1.4l-.6-2.3c1.9-1.2 3.2-3.4 3.2-5.9 0-3.9-3.1-7-7-7zm0 10.5c-1.9 0-3.5-1.6-3.5-3.5S10.1 7.5 12 7.5s3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/></svg>
+                    打掃指派與時數
+                </div>
+                <div class="nav-item admin-only" data-target="memberPage">
+                    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 8 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    員工管理 <span class="admin-only-badge">Admin</span>
+                </div>
+            </nav>
+            
+            <!-- User Section -->
+            <div class="user-profile-section">
+                <div class="user-profile-info">
+                    <div id="currentUserAvatar" class="avatar">A</div>
+                    <div class="user-details">
+                        <div id="currentUserName" class="username">管理者</div>
+                        <div id="currentUserRole" class="user-role">管理員 (admin)</div>
+                        <div id="currentUserCompDays" class="text-secondary" style="font-size: 0.75rem; margin-top: 2px;">可補休天數: 0 天</div>
+                    </div>
+                </div>
+                <button id="btnLogout" class="btn btn-secondary btn-sm" style="width: 100%;">
+                    <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                    登出系統
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Panel -->
+        <main class="main-panel">
+            <!-- Top Header -->
+            <header>
+                <div class="page-title">
+                    <h1 id="pageTitleText">總覽儀表板</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Notifications and Approvals (Admin only triggers) -->
+                    <button id="btnLineSettings" class="btn btn-secondary btn-sm admin-only" style="margin-right: 0.5rem;">
+                        <svg viewBox="0 0 24 24" style="fill: #06C755; width: 1.1rem; height: 1.1rem; vertical-align: middle;"><path d="M12 2C6.48 2 2 5.58 2 10c0 2.45 1.5 4.6 3.86 5.86-.18.66-.65 2.37-.75 2.76-.1.39-.48 1.83.82 1.1 1.3-.73 6.02-4.08 6.07-4.12.33.05.66.08 1 .08 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/></svg>
+                        LINE 通知設定
+                    </button>
+                    <button id="btnPendingLeaves" class="btn btn-secondary btn-sm admin-only" style="position: relative;">
+                        <svg viewBox="0 0 24 24" style="fill: var(--color-warning);"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        審核假單
+                        <span id="pendingLeavesCount" class="notification-badge" style="display: none; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%; color: white; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; font-weight: bold; background: var(--color-danger);">0</span>
+                    </button>
+                    <div class="notification-bell">
+                        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 4.36 6 6.92 6 10v5l-2 2v1h16v-1l-2-2z"/></svg>
+                        <span class="notification-badge"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Container -->
+            <div class="content-area">
+                
+                <!-- Global Announcement Banner -->
+                <div class="announcement-banner glass-card" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; border-left: 5px solid var(--color-warning); background: rgba(217, 119, 6, 0.04); padding: 0.8rem 1.2rem;">
+                    <svg viewBox="0 0 24 24" style="width: 1.4rem; height: 1.4rem; fill: var(--color-warning); flex-shrink: 0;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    <div style="font-weight: 500; font-size: 0.88rem; color: var(--text-primary); line-height: 1.45;">
+                        📢 <strong>排班規定公告：</strong>每個月 10 號前需排完下個月休假；每個月 10 號開放隔兩個月排休；技師與半技師不能同天休假；連休 3 天以上需提前一個月告知。
+                    </div>
+                </div>
+                
+                <!-- ==========================================
+                     DASHBOARD PAGE
+                     ========================================== -->
+                <section id="dashboardPage" class="page-content active">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="glass-card stat-card" style="--card-color: var(--color-primary)">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                            </div>
+                            <div class="stat-title">當月已安排排班</div>
+                            <div id="statTotalShifts" class="stat-value">0 個</div>
+                        </div>
+                        
+                        <div class="glass-card stat-card" style="--card-color: var(--color-warning)">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            </div>
+                            <div class="stat-title">待處理休假申請</div>
+                            <div id="statPendingLeaves" class="stat-value">0 筆</div>
+                        </div>
+
+                        <div class="glass-card stat-card" style="--card-color: var(--color-success)">
+                            <div class="stat-icon">
+                                <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                            </div>
+                            <div class="stat-title">打掃任務已完成</div>
+                            <div id="statCompletedTasks" class="stat-value">0 區</div>
+                        </div>
+
+
+                    </div>
+
+                    <!-- Layout: Dashboard Panels -->
+                    <div class="dashboard-layout">
+                        <!-- Left Panel: Today's Schedule -->
+                        <div class="glass-card">
+                            <div class="card-header-actions">
+                                <h3>今日值班人員列表</h3>
+                                <span id="currentDateDisplay" class="text-secondary" style="font-size: 0.9rem;">2026/06/03</span>
+                            </div>
+                            <div id="todayShiftsList" class="today-shifts-list">
+                                <!-- Dynamic Render -->
+                                <div class="shift-row-item" style="--shift-color: var(--shift-off)">
+                                    <div class="shift-row-info">
+                                        <div class="shift-row-title">今日暫無排班人員</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Quick Action Center -->
+                        <div class="glass-card">
+                            <div class="card-header-actions">
+                                <h3>快速操作中心</h3>
+                            </div>
+                            <div class="quick-action-list">
+                                <div id="actionRequestLeave" class="quick-action-item">
+                                    <svg viewBox="0 0 24 24"><path d="M14 6V4h-4v2h4zM4 8v11c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-3V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H6c-1.1 0-2 .9-2 2zm14 11H6V8h12v11z"/></svg>
+                                    申請休假 / 排休
+                                </div>
+                                <div id="actionAddTask" class="quick-action-item admin-only">
+                                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                    指派打掃任務
+                                </div>
+                                <div id="actionAddMember" class="quick-action-item admin-only">
+                                    <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                    新增員工帳號
+                                </div>
+                                <div id="actionManageEvents" class="quick-action-item admin-only">
+                                    <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                                    管理店休與聚餐
+                                </div>
+                                <div id="actionGoToCalendar" class="quick-action-item">
+                                    <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                                    查看完整月曆
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     CALENDAR PAGE
+                     ========================================== -->
+                <section id="calendarPage" class="page-content">
+                    <div class="glass-card">
+                        <!-- Calendar Controls -->
+                        <div class="calendar-controls">
+                            <div class="calendar-nav">
+                                <button id="btnPrevMonth" class="btn btn-secondary btn-sm">
+                                    <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                                </button>
+                                <div id="currentMonthYear" class="current-month-year">2026 年 6 月</div>
+                                <button id="btnNextMonth" class="btn btn-secondary btn-sm">
+                                    <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                                </button>
+                            </div>
+                            
+                            <!-- Color Legend -->
+                            <div class="calendar-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--shift-work)"></div>
+                                    <span>平日上班 (On Duty)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--shift-closed)"></div>
+                                    <span>週日公休 (Closed)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--shift-leave)"></div>
+                                    <span>排休已核准 (Leave)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: var(--shift-pending)"></div>
+                                    <span>排休審核中 (Pending)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Calendar Grid -->
+                        <div class="calendar-grid-header" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px;">
+                            <div class="calendar-day-header">日</div>
+                            <div class="calendar-day-header">一</div>
+                            <div class="calendar-day-header">二</div>
+                            <div class="calendar-day-header">三</div>
+                            <div class="calendar-day-header">四</div>
+                            <div class="calendar-day-header">五</div>
+                            <div class="calendar-day-header">六</div>
+                        </div>
+                        <div id="calendarDaysGrid" class="calendar-grid">
+                            <!-- JS will render calendar cells here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     CLEANING PAGE
+                     ========================================== -->
+                <section id="cleaningPage" class="page-content">
+                    <div class="clean-page-grid">
+                        
+                        <!-- Left Panel: Task Board -->
+                        <div class="glass-card">
+                            <div class="card-header-actions">
+                                <h3>打掃指派看板</h3>
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    <button id="btnAutoAssignTasks" class="btn btn-info btn-sm admin-only">
+                                        ⚡ 智慧自動分配打掃
+                                    </button>
+                                    <button id="btnAddNewTask" class="btn btn-primary btn-sm admin-only">
+                                        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                        指派打掃任務
+                                    </button>
+                                    <button id="btnClearAllTasks" class="btn btn-danger btn-sm admin-only" style="background: linear-gradient(135deg, #e53e3e, #c53030);">
+                                        🗑️ 清空所有打掃任務
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="tasksList" class="tasks-list">
+                                <!-- Dynamic tasks rendered by JS -->
+                                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                    目前無指派的打掃任務
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </section>
+
+                <!-- ==========================================
+                     MEMBER MANAGEMENT PAGE (Admin Only)
+                     ========================================== -->
+                <section id="memberPage" class="page-content">
+                    <div class="glass-card">
+                        <div class="card-header-actions">
+                            <h3>員工帳號管理</h3>
+                            <button id="btnAddNewMember" class="btn btn-primary btn-sm">
+                                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                新增員工
+                            </button>
+                        </div>
+                        
+                        <div id="memberGrid" class="member-grid">
+                            <!-- Dynamic member cards -->
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==========================================
+         MODALS & DIALOGS
+         ========================================== -->
+
+    <!-- Modal: Shift Allocation (Admin Click Cell) -->
+    <div id="shiftModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>指派員工排休</h3>
+                <button class="modal-close" data-close="shiftModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="shiftForm">
+                    <input type="hidden" id="shiftDate">
+                    <input type="hidden" id="shiftType" value="leave">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label>選定日期</label>
+                        <div id="shiftDateLabel" style="font-weight: 600; font-size: 1.1rem; color: var(--color-primary);">2026-06-03</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="shiftEmployee">選擇員工</label>
+                        <select id="shiftEmployee" class="form-control" style="padding-left: 1rem;" required>
+                            <!-- Options from JS -->
+                        </select>
+                        <div id="shiftLimitNotice" class="limit-badge normal" style="margin-top: 8px;">該員工本月已排休: 0/2 天</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="shiftLeaveType">排休類型</label>
+                        <select id="shiftLeaveType" class="form-control" style="padding-left: 1rem;" required>
+                            <option value="regular">一般排休 (計入當月 2 天限額)</option>
+                            <option value="comp">補休排假 (扣除個人可補休天數)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="shiftCompDurationGroup" style="display: none;">
+                        <label for="shiftCompDuration">補休時數 / 天數</label>
+                        <select id="shiftCompDuration" class="form-control" style="padding-left: 1rem;">
+                            <option value="1.0">整天 (1.0 天)</option>
+                            <option value="0.5">半天 (0.5 天)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="shiftModal">取消</button>
+                <button id="btnDeleteShift" type="button" class="btn btn-danger btn-sm" style="margin-right: auto; display: none;">刪除排休</button>
+                <button id="btnSaveShift" type="button" class="btn btn-primary btn-sm">儲存排休</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Leave Application Form (Employee/Admin Quick Action) -->
+    <div id="leaveRequestModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="leaveRequestModalTitle">申請休假 / 排休</h3>
+                <button class="modal-close" data-close="leaveRequestModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="leaveRequestForm">
+                    <input type="hidden" id="leaveRequestId">
+                    <div class="form-group admin-only">
+                        <label for="leaveRequestEmployee">申請員工</label>
+                        <select id="leaveRequestEmployee" class="form-control" style="padding-left: 1rem;">
+                            <!-- Options from JS -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="leaveRequestDate">排休日期 (週日固定公休)</label>
+                        <input type="date" id="leaveRequestDate" class="form-control" style="padding-left: 1rem;" required>
+                        <div id="leaveLimitNotice" class="limit-badge normal" style="margin-top: 8px;">本月已使用排休額度: 0 / 2 天</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="leaveRequestType">排休類型</label>
+                        <select id="leaveRequestType" class="form-control" style="padding-left: 1rem;" required>
+                            <option value="regular">一般排休 (計入當月 2 天限額)</option>
+                            <option value="comp">補休排假 (扣除個人可補休天數)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="leaveCompDurationGroup" style="display: none;">
+                        <label for="leaveCompDuration">補休時數 / 天數</label>
+                        <select id="leaveCompDuration" class="form-control" style="padding-left: 1rem;">
+                            <option value="1.0">整天 (1.0 天)</option>
+                            <option value="0.5">半天 (0.5 天)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="leaveReason">排休事由 / 說明 (選填)</label>
+                        <textarea id="leaveReason" class="form-control" rows="3" style="padding-left: 1rem; resize: none;" placeholder="例：家庭聚餐、辦理私人事務"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="leaveRequestModal">取消</button>
+                <button id="btnDeleteLeaveRequest" type="button" class="btn btn-danger btn-sm" style="margin-right: auto; display: none;">取消休假 / 申請</button>
+                <button id="btnSubmitLeaveRequest" type="button" class="btn btn-primary btn-sm">送出申請</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add / Assign Cleaning Task (Admin) -->
+    <div id="taskModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="taskModalTitle">指派打掃任務</h3>
+                <button class="modal-close" data-close="taskModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" id="taskIdField">
+                    <div class="form-group">
+                        <label for="taskArea">打掃區域 / 項目</label>
+                        <select id="taskArea" class="form-control" style="padding-left: 1rem;" required>
+                            <option value="室內地板環境整理">室內地板環境整理</option>
+                            <option value="藥水補充">藥水補充</option>
+                            <option value="室外吸煙區整理">室外吸煙區整理</option>
+                            <option value="工具歸位整理">工具歸位整理</option>
+                            <option value="處理好指定空間">處理好指定空間 (後勤人員)</option>
+                            <option value="other">其他自訂項目</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="customTaskAreaContainer" style="display: none;">
+                        <label for="taskAreaCustom">自訂打掃項目名稱</label>
+                        <input type="text" id="taskAreaCustom" class="form-control" style="padding-left: 1rem;" placeholder="請輸入打掃項目">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskEmployee">指派人員</label>
+                        <select id="taskEmployee" class="form-control" style="padding-left: 1rem;" required>
+                            <!-- Options from JS -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskDate">執行日期</label>
+                        <input type="date" id="taskDate" class="form-control" style="padding-left: 1rem;" required>
+                    </div>
+                    
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="taskModal">取消</button>
+                <button id="btnDeleteTask" type="button" class="btn btn-danger btn-sm admin-only" style="margin-right: auto; display: none;">刪除任務</button>
+                <button id="btnSaveTask" type="button" class="btn btn-primary btn-sm">儲存任務</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Smart Auto-Assign Tasks (Admin) -->
+    <div id="autoAssignModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>⚡ 智慧自動分配打掃</h3>
+                <button class="modal-close" data-close="autoAssignModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="autoAssignForm">
+                    <div class="form-group">
+                        <label for="autoAssignDate">選擇開始日期</label>
+                        <input type="date" id="autoAssignDate" class="form-control" style="padding-left: 1rem;" required>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="autoAssignMode">分配範圍</label>
+                        <select id="autoAssignMode" class="form-control" style="padding-left: 1rem;">
+                            <option value="1">單日分配</option>
+                            <option value="7">整週分配 (從開始日期起算 7 天)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="autoAssignModal">取消</button>
+                <button id="btnExecuteAutoAssign" type="button" class="btn btn-primary btn-sm">執行自動分配</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Modal: Leave Request Management (Admin Approvals List) -->
+    <div id="leaveApprovalModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>待審核休假申請</h3>
+                <button class="modal-close" data-close="leaveApprovalModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 1.5rem;">
+                <div id="pendingLeaveApprovalList" class="approval-list">
+                    <!-- Dynamic leave approval items -->
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        目前沒有待審核的休假申請
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="leaveApprovalModal">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Employee Profile Detail Form (Admin) -->
+    <div id="memberModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="memberModalTitle">新增員工資料</h3>
+                <button class="modal-close" data-close="memberModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="memberForm">
+                    <input type="hidden" id="memberIdField">
+                    
+                    <div class="form-group">
+                        <label for="memberName">員工姓名</label>
+                        <input type="text" id="memberName" class="form-control" style="padding-left: 1rem;" placeholder="例：林小明" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="memberUsername">登入帳號 (Username)</label>
+                        <input type="text" id="memberUsername" class="form-control" style="padding-left: 1rem;" placeholder="例：xiaoming" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="memberPassword">登入密碼 (Password)</label>
+                        <input type="password" id="memberPassword" class="form-control" style="padding-left: 1rem;" placeholder="請輸入密碼" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="memberRole">系統角色權限</label>
+                        <select id="memberRole" class="form-control" style="padding-left: 1rem;" required>
+                            <option value="employee">一般員工 (Employee)</option>
+                            <option value="admin">管理員 (Admin)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="memberPosition">員工職位 / 職稱</label>
+                        <select id="memberPosition" class="form-control" style="padding-left: 1rem;" required>
+                            <option value="other">行政 / 後勤 / 其他</option>
+                            <option value="master">技師</option>
+                            <option value="semi">半技師</option>
+                            <option value="apprentice">學徒</option>
+                            <option value="beauty">汽美部門</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="memberCompDays">可補休天數 (天)</label>
+                        <input type="number" id="memberCompDays" class="form-control" style="padding-left: 1rem;" value="0" min="0" max="99" step="0.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="memberLeaveLimit">每月一般排休上限 (天)</label>
+                        <input type="number" id="memberLeaveLimit" class="form-control" style="padding-left: 1rem;" value="2" min="0" max="31" step="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="memberModal">取消</button>
+                <button id="btnSaveMember" type="button" class="btn btn-primary btn-sm">儲存資料</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal: Manage Shop Events & Closed Days (Admin) -->
+    <div id="eventModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="eventModalTitle">管理店休與聚餐</h3>
+                <button class="modal-close" data-close="eventModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <input type="hidden" id="eventIdField">
+                    
+                    <div class="form-group">
+                        <label for="eventType">事件類型</label>
+                        <select id="eventType" class="form-control" style="padding-left: 1rem;" required>
+                            <option value="closed">店內公休 (Closed Day)</option>
+                            <option value="gathering">員工聚餐 (Gathering)</option>
+                            <option value="other">其他自訂事件 (Other Event)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="eventDate">日期</label>
+                        <input type="date" id="eventDate" class="form-control" style="padding-left: 1rem;" required>
+                    </div>
+
+                    <!-- Gathering specific fields -->
+                    <div id="gatheringFields">
+                        <div class="form-group">
+                            <label for="eventTime">時間</label>
+                            <input type="time" id="eventTime" class="form-control" style="padding-left: 1rem;">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="eventLocation">地點 / 說明</label>
+                            <input type="text" id="eventLocation" class="form-control" style="padding-left: 1rem;" placeholder="例：饗食天堂信義店">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="eventTitle">事件名稱 / 說明</label>
+                        <input type="text" id="eventTitle" class="form-control" style="padding-left: 1rem;" placeholder="例：公休事由、聚餐項目或其他事件" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="eventModal">取消</button>
+                <button id="btnDeleteEvent" type="button" class="btn btn-danger btn-sm" style="margin-right: auto; display: none;">刪除事件</button>
+                <button id="btnSaveEvent" type="button" class="btn btn-primary btn-sm">儲存事件</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: LINE Notification Settings (Admin) -->
+    <div id="lineSettingsModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>LINE 群組通知設定</h3>
+                <button class="modal-close" data-close="lineSettingsModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="lineSettingsForm">
+                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <label for="lineNotifyEnabled" style="margin-bottom: 0; cursor: pointer;">啟用 LINE 群組通知</label>
+                        <input type="checkbox" id="lineNotifyEnabled" style="width: 22px; height: 22px; cursor: pointer; accent-color: #06C755;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lineWebhookUrl">Webhook 網址 (URL)</label>
+                        <input type="url" id="lineWebhookUrl" class="form-control" style="padding-left: 1rem;" placeholder="https://script.google.com/macros/s/.../exec">
+                    </div>
+                    
+                    <div class="login-tips" style="margin-top: 1rem; line-height: 1.45; font-size: 0.8rem;">
+                        <strong>如何設定中繼 Webhook 發送至 LINE？</strong>
+                        <ol style="margin-left: 1.2rem; margin-top: 0.25rem;">
+                            <li>建立一個 LINE Bot 帳號並將其加入您的 LINE 工作群組。</li>
+                            <li>建立一個免費的 <strong>Google Apps Script (GAS)</strong> 或使用 Make.com / IFTTT 接收此網頁的 POST 請求。</li>
+                            <li>中繼腳本呼叫 LINE Messaging API 的 <code>push</code> 介面，將訊息轉傳至群組。</li>
+                            <li><strong>早上 10:00 定時日報</strong>：系統會在管理員登入且時間超過 10:00 時，若當日未發送則自動觸發；若需無須網頁開啟的完全自動化，可在 GAS 中設定<strong>時間驅動程序（Time-driven trigger）</strong>於每日 10:00 執行。</li>
+                            <li><em>若未啟用或未填寫 Webhook 網址，系統亦會於右上角自動彈出 LINE 群組訊息模擬畫面。</em></li>
+                        </ol>
+                        <button id="btnCopyGASCode" type="button" class="btn btn-info btn-xs" style="margin-top: 0.6rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; font-weight: 600;">
+                            📋 複製 Google Apps Script (GAS) 完整腳本碼
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="lineSettingsModal">取消</button>
+                <button id="btnTestLineMessage" type="button" class="btn btn-success btn-sm" style="margin-right: auto;">測試發送</button>
+                <button id="btnSendDailyReport" type="button" class="btn btn-info btn-sm" style="margin-right: 0.5rem;">發送今日日報</button>
+                <button id="btnSaveLineSettings" type="button" class="btn btn-primary btn-sm">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LINE Notification Simulator Toast Container -->
+    <div id="lineSimContainer" style="position: fixed; top: 80px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 340px; pointer-events: none;"></div>
+
+    <!-- Script loading -->
+    <script src="app.js"></script>
+</body>
+</html>
