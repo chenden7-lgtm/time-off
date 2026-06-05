@@ -348,6 +348,13 @@ const btnSaveLineSettings = document.getElementById('btnSaveLineSettings');
 const lineSimContainer = document.getElementById('lineSimContainer');
 const btnCopyGASCode = document.getElementById('btnCopyGASCode');
 
+// Backup & Restore Elements
+const btnBackupRestore = document.getElementById('btnBackupRestore');
+const backupModal = document.getElementById('backupModal');
+const btnExportData = document.getElementById('btnExportData');
+const importFile = document.getElementById('importFile');
+const btnConfirmImport = document.getElementById('btnConfirmImport');
+
 // Shop Events Elements
 const actionManageEvents = document.getElementById('actionManageEvents');
 const eventModal = document.getElementById('eventModal');
@@ -1722,6 +1729,87 @@ navItems.forEach(item => {
 btnPendingLeaves.addEventListener('click', () => {
     renderLeaveApprovalList();
     openModal(leaveApprovalModal);
+});
+
+// Backup & Restore Modal triggers (Admin only)
+btnBackupRestore.addEventListener('click', () => {
+    importFile.value = ''; // Reset file input
+    openModal(backupModal);
+});
+
+// Export Data (download JSON)
+btnExportData.addEventListener('click', () => {
+    try {
+        const dataStr = JSON.stringify(dbData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const tempLink = document.createElement('a');
+        tempLink.href = url;
+        tempLink.download = `time_off_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('匯出資料失敗：' + err.message);
+    }
+});
+
+// Confirm Import Data
+btnConfirmImport.addEventListener('click', () => {
+    const file = importFile.files[0];
+    if (!file) {
+        alert('請先選擇要匯入的備份檔案 (.json)！');
+        return;
+    }
+    
+    if (!confirm('警告：匯入此備份檔案將會覆蓋您目前的全部員工、排休、打掃任務及設定！確定要繼續嗎？')) {
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            // Validate basic database structure
+            if (!importedData || typeof importedData !== 'object') {
+                throw new Error('無效的備份檔案格式');
+            }
+            if (!Array.isArray(importedData.members)) {
+                throw new Error('備份檔案中缺少「員工資料」或格式錯誤');
+            }
+            if (!Array.isArray(importedData.leaves)) {
+                throw new Error('備份檔案中缺少「假單資料」或格式錯誤');
+            }
+            if (!Array.isArray(importedData.tasks)) {
+                throw new Error('備份檔案中缺少「打掃任務」或格式錯誤');
+            }
+            if (!Array.isArray(importedData.shopEvents)) {
+                throw new Error('備份檔案中缺少「店休聚餐事件」或格式錯誤');
+            }
+            
+            // Safe copy to dbData
+            dbData = {
+                members: importedData.members,
+                leaves: importedData.leaves,
+                tasks: importedData.tasks,
+                shopEvents: importedData.shopEvents,
+                lineSettings: importedData.lineSettings || { enabled: false, webhookUrl: '' }
+            };
+            
+            saveData();
+            alert('資料匯入成功！系統將自動重新整理網頁。');
+            window.location.reload();
+        } catch (err) {
+            alert('匯入失敗：' + err.message + '\n請確定您選擇的是正確的系統備份檔案。');
+        }
+    };
+    reader.onerror = function() {
+        alert('讀取檔案時發生錯誤！');
+    };
+    reader.readAsText(file);
 });
 
 // LINE Settings Modal triggers (Admin only)

@@ -107,6 +107,10 @@
                 </div>
                 <div class="header-right">
                     <!-- Notifications and Approvals (Admin only triggers) -->
+                    <button id="btnBackupRestore" class="btn btn-secondary btn-sm admin-only" style="margin-right: 0.5rem;">
+                        <svg viewBox="0 0 24 24" style="fill: #4f46e5; width: 1.1rem; height: 1.1rem; vertical-align: middle;"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+                        資料備份與還原
+                    </button>
                     <button id="btnLineSettings" class="btn btn-secondary btn-sm admin-only" style="margin-right: 0.5rem;">
                         <svg viewBox="0 0 24 24" style="fill: #06C755; width: 1.1rem; height: 1.1rem; vertical-align: middle;"><path d="M12 2C6.48 2 2 5.58 2 10c0 2.45 1.5 4.6 3.86 5.86-.18.66-.65 2.37-.75 2.76-.1.39-.48 1.83.82 1.1 1.3-.73 6.02-4.08 6.07-4.12.33.05.66.08 1 .08 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/></svg>
                         LINE 通知設定
@@ -700,6 +704,51 @@
                 <button id="btnTestLineMessage" type="button" class="btn btn-success btn-sm" style="margin-right: auto;">測試發送</button>
                 <button id="btnSendDailyReport" type="button" class="btn btn-info btn-sm" style="margin-right: 0.5rem;">發送今日日報</button>
                 <button id="btnSaveLineSettings" type="button" class="btn btn-primary btn-sm">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Data Backup & Restore (Admin) -->
+    <div id="backupModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>💾 系統資料備份與還原</h3>
+                <button class="modal-close" data-close="backupModal">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5;">
+                    您可以在此匯出本系統的所有排班、休假、員工帳號及打掃設定資料。這可用於資料備份，或是將資料轉移至新的網址（如 GitHub Pages）中。
+                </p>
+                
+                <div style="background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <h4 style="margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; color: var(--color-primary); font-size: 0.95rem;">
+                        📤 步驟 1: 匯出當前資料
+                    </h4>
+                    <p style="font-size: 0.8rem; margin-bottom: 0.75rem; line-height: 1.4; color: var(--text-secondary);">
+                        將此裝置瀏覽器中的最新排班與假單資料打包下載為一個 JSON 檔案。
+                    </p>
+                    <button id="btnExportData" type="button" class="btn btn-primary btn-sm" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        📥 下載備份檔案 (JSON)
+                    </button>
+                </div>
+
+                <div style="background: rgba(217, 119, 6, 0.08); border: 1px solid rgba(217, 119, 6, 0.2); border-radius: 8px; padding: 1rem;">
+                    <h4 style="margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; color: var(--color-warning); font-size: 0.95rem;">
+                        📥 步驟 2: 匯入/還原資料
+                    </h4>
+                    <p style="font-size: 0.8rem; margin-bottom: 0.75rem; line-height: 1.4; color: var(--text-secondary);">
+                        上傳之前匯出的備份檔案 (JSON)，這將會<strong>覆蓋</strong>當前瀏覽器中的所有排班與員工資料，並重新整理網頁。
+                    </p>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="file" id="importFile" accept=".json" class="form-control" style="padding: 0.5rem; line-height: 1.2; font-size: 0.85rem;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-close="backupModal">關閉</button>
+                <button id="btnConfirmImport" type="button" class="btn btn-warning btn-sm" style="margin-left: auto;">確認匯入資料</button>
             </div>
         </div>
     </div>
