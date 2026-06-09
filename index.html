@@ -711,7 +711,7 @@
                             <li>建立一個 LINE Bot 帳號並將其加入您的 LINE 工作群組。</li>
                             <li>建立一個免費的 <strong>Google Apps Script (GAS)</strong> 或使用 Make.com / IFTTT 接收此網頁的 POST 請求。</li>
                             <li>中繼腳本呼叫 LINE Messaging API 的 <code>push</code> 介面，將訊息轉傳至群組。</li>
-                            <li><strong>早上 10:00 定時日報</strong>：系統會在管理員登入且時間超過 10:00 時，若當日未發送則自動觸發；若需無須網頁開啟的完全自動化，可在 GAS 中設定<strong>時間驅動程序（Time-driven trigger）</strong>於每日 10:00 執行。</li>
+                            <li><strong>早上 10:30 定時日報</strong>：若需無須網頁開啟的完全自動化，可在部署 GAS 後，於 GAS 編輯器中手動執行一次 <code>setupDaily1030Trigger</code> 函數，系統便會於每日早上 10:30 自動發送。</li>
                             <li><em>若未啟用或未填寫 Webhook 網址，系統亦會於右上角自動彈出 LINE 群組訊息模擬畫面。</em></li>
                         </ol>
                         <button id="btnCopyGASCode" type="button" class="btn btn-info btn-xs" style="margin-top: 0.6rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; font-weight: 600;">

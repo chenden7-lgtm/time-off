@@ -728,10 +728,11 @@ function renderDashboard() {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
-    // Check if daily report should be auto-sent (admin only, past 10:00 AM, not yet sent today)
+    // Check if daily report should be auto-sent (admin only, past 10:30 AM, not yet sent today)
     if (currentUser && currentUser.role === 'admin' && dbData.lineSettings && dbData.lineSettings.enabled) {
         const currentHour = today.getHours();
-        if (currentHour >= 10) {
+        const currentMinute = today.getMinutes();
+        if (currentHour > 10 || (currentHour === 10 && currentMinute >= 30)) {
             if (dbData.lineSettings.lastReportDate !== todayStr) {
                 dbData.lineSettings.lastReportDate = todayStr;
                 saveData();
@@ -2276,7 +2277,7 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     
-    // 處理資料同步備份 (用於離線 10:00 AM 定時日報)
+    // 處理資料同步備份 (用於離線 10:30 AM 定時日報)
     if (data.action === "sync" && data.dbData) {
       PropertiesService.getScriptProperties().setProperty("db_backup", JSON.stringify(data.dbData));
       return ContentService.createTextOutput(JSON.stringify({ status: "synced" }))
@@ -2299,7 +2300,52 @@ function doPost(e) {
   }
 }
 
-// 3. 早上 10:00 自動觸發的時間驅動程序 (每日定時日報)
+// 【重要步驟】部署後，請在 GAS 中手動執行此函數一次，以啟用自動精確排程
+function setupDaily1030Trigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    const handler = triggers[i].getHandlerFunction();
+    if (handler === "sendDailyReportTimer" || 
+        handler === "setDailyReportTriggerForToday" || 
+        handler === "setupDaily1030Trigger") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // 每天清晨 4:00 - 5:00 執行分配，動態設定當天 10:30 精確時間發送
+  ScriptApp.newTrigger("setDailyReportTriggerForToday")
+           .timeBased()
+           .everyDays(1)
+           .atHour(4)
+           .create();
+           
+  // 同步立刻設定今天的 10:30 觸發
+  setDailyReportTriggerForToday();
+}
+
+// 動態排程當天/隔天的 10:30 AM 單次定時器 (台北時間)
+function setDailyReportTriggerForToday() {
+  const now = new Date();
+  const targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 30, 0);
+  
+  if (now.getTime() > targetTime.getTime()) {
+    targetTime.setDate(targetTime.getDate() + 1);
+  }
+  
+  const triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "sendDailyReportTimer") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  ScriptApp.newTrigger("sendDailyReportTimer")
+           .timeBased()
+           .at(targetTime)
+           .create();
+}
+
+// 3. 早上 10:30 自動觸發的時間驅動程序 (每日定時日報)
 function sendDailyReportTimer() {
   const dbJson = PropertiesService.getScriptProperties().getProperty("db_backup");
   if (!dbJson) {
